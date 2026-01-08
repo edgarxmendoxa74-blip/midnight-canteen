@@ -42,11 +42,29 @@ function Home() {
     }
 
     const addToCart = (item) => {
-        if (!cart.find(cartItem => cartItem.id === item.id)) {
-            setCart([...cart, item])
+        const existingItem = cart.find(cartItem => cartItem.id === item.id)
+        if (existingItem) {
+            setCart(cart.map(cartItem =>
+                cartItem.id === item.id
+                    ? { ...cartItem, quantity: (cartItem.quantity || 1) + 1 }
+                    : cartItem
+            ))
             setIsCartOpen(true)
-            setCheckoutStep('cart') // Ensure we start at cart when adding
+        } else {
+            setCart([...cart, { ...item, quantity: 1 }])
+            setIsCartOpen(true)
+            setCheckoutStep('cart')
         }
+    }
+
+    const updateQuantity = (id, change) => {
+        setCart(cart.map(item => {
+            if (item.id === id) {
+                const newQuantity = (item.quantity || 1) + change
+                return newQuantity > 0 ? { ...item, quantity: newQuantity } : item
+            }
+            return item
+        }))
     }
 
     const removeFromCart = (id) => {
@@ -93,7 +111,7 @@ function Home() {
         return matchesCategory
     })
 
-    const cartTotal = cart.reduce((sum, item) => sum + item.price, 0)
+    const cartTotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0)
 
     return (
         <div className="home">
@@ -116,7 +134,7 @@ function Home() {
             </nav>
             <div className="sub-header" style={{ position: 'sticky', top: '90px', zIndex: 999, backgroundColor: 'var(--glass-midnight)', padding: '1rem 0', borderBottom: '1px solid var(--border-light)', backdropFilter: 'blur(10px)' }}>
                 <div className="container" style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                    {['All', 'Wings Series', 'Silog Series', 'Refreshers', 'Platters'].map(cat => (
+                    {['All', 'Wings Series', 'Silog Series', 'Noodles', 'Classic Milktea Series', 'Fruit Tea Series', 'Refreshers', 'Platters'].map(cat => (
                         <button
                             key={cat}
                             onClick={() => {
@@ -212,7 +230,14 @@ function Home() {
                                         <div className="cart-item-details">
                                             <h4>{item.customTitle || item.title}</h4>
                                             <p>₱{Number(item.price).toLocaleString()}</p>
-                                            <button onClick={() => removeFromCart(item.id)} style={{ color: 'var(--c-gold)', fontSize: '0.8rem', marginTop: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Remove</button>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.1)', padding: '0.2rem', borderRadius: '4px' }}>
+                                                    <button onClick={() => updateQuantity(item.id, -1)} style={{ color: 'white', fontSize: '1rem', width: '25px', height: '25px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>-</button>
+                                                    <span style={{ fontWeight: 'bold' }}>{item.quantity || 1}</span>
+                                                    <button onClick={() => updateQuantity(item.id, 1)} style={{ color: 'white', fontSize: '1rem', width: '25px', height: '25px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                                                </div>
+                                                <button onClick={() => removeFromCart(item.id)} style={{ color: 'var(--c-gold)', fontSize: '0.8rem', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Remove</button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))
@@ -333,7 +358,7 @@ function Home() {
                                     )}
                                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
                                         {lastOrder.items.map((item, idx) => (
-                                            <p key={idx} style={{ fontSize: '0.8rem', marginBottom: '0.2rem' }}>• {item.customTitle || item.title}</p>
+                                            <p key={idx} style={{ fontSize: '0.8rem', marginBottom: '0.2rem' }}>• {item.quantity || 1}x {item.customTitle || item.title}</p>
                                         ))}
                                     </div>
                                     <p style={{ fontWeight: 'bold', marginTop: '0.5rem', color: 'var(--c-gold)' }}>Total: ₱{lastOrder.total_amount.toLocaleString()}</p>
@@ -354,7 +379,7 @@ function Home() {
                                                 `📍 *Type:* ${lastOrder.order_type === 'delivery' ? 'Delivery' : 'Dine In'}\n` +
                                                 (lastOrder.order_type === 'delivery' ? `🏠 *Address:* ${lastOrder.address}\n` : `🪑 *Table:* ${lastOrder.table_number}\n`) +
                                                 `💰 *Payment:* ${lastOrder.payment_method.toUpperCase()}\n\n` +
-                                                `📝 *ITEMS:*\n${lastOrder.items.map(i => `• ${i.customTitle || i.title}`).join('\n')}\n\n` +
+                                                `📝 *ITEMS:*\n${lastOrder.items.map(i => `• ${i.quantity || 1}x ${i.customTitle || i.title}`).join('\n')}\n\n` +
                                                 `💵 *TOTAL AMOUNT: ₱${lastOrder.total_amount.toLocaleString()}*`;
 
                                             navigator.clipboard.writeText(summary).then(() => {

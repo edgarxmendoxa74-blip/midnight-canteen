@@ -3,6 +3,9 @@ import React, { useState } from 'react'
 export default function FullDetailsModal({ painting: item, isOpen, onClose, addToCart }) {
     const [selectedSize, setSelectedSize] = useState('')
     const [selectedFlavor, setSelectedFlavor] = useState('')
+    const [selectedAddOns, setSelectedAddOns] = useState([])
+    const [sugarLevel, setSugarLevel] = useState('100%')
+    const [isCheesecakeWall, setIsCheesecakeWall] = useState(false)
 
     if (!isOpen || !item) return null
 
@@ -10,6 +13,9 @@ export default function FullDetailsModal({ painting: item, isOpen, onClose, addT
     const isSilog = item.category.toLowerCase().includes('silog')
     const isRefreshers = item.category.toLowerCase().includes('refreshers')
     const isPlatter = item.title.toLowerCase().includes('platter')
+    const isBuldak = item.title.toLowerCase().includes('buldak') || item.category === 'Noodles'
+    const isMilktea = item.category === 'Classic Milktea Series'
+    const isFruitTea = item.category === 'Fruit Tea Series'
 
     const wingsOptions = {
         sizes: [
@@ -34,9 +40,55 @@ export default function FullDetailsModal({ painting: item, isOpen, onClose, addT
         { label: 'Good for 4', price: 249 }
     ]
 
+    const buldakOptions = {
+        flavors: ['Orange Buldak Quatro Cheese', 'Pink Buldak Carbonara'],
+        addOns: [
+            { label: 'Spam', price: 10 },
+            { label: 'Egg', price: 15 },
+            { label: 'Korean Fishcake', price: 15 },
+            { label: 'Nori Seaweed', price: 20 },
+            { label: 'Melted Cheese', price: 30 }
+        ]
+    }
+
+    const milkteaOptions = {
+        flavors: ['Cookies Overload', 'Dark Chocolate', 'Red Velvet', 'Cheesecake', 'Wintermelon', 'Taro', 'Matcha', 'Okinawa', 'Candy Rabbit'],
+        sizes: [
+            { label: 'Medium', price: 79 },
+            { label: 'Large', price: 89 }
+        ],
+        addOns: [
+            { label: 'Extra Pearl', price: 10 },
+            { label: 'Crushed Oreo', price: 10 },
+            { label: 'Nata de Coco', price: 10 },
+            { label: 'Coffee Jelly', price: 15 }
+        ],
+        sugar: ['0%', '25%', '50%', '75%', '100%', '125%']
+    }
+
+    const fruitTeaOptions = {
+        flavors: ['Mango', 'Green Apple', 'Blueberry', 'Lychee'],
+        sizes: [
+            { label: 'Medium', price: 75 },
+            { label: 'Large', price: 85 }
+        ],
+        addOns: [
+            { label: 'Extra Nata', price: 10 },
+            { label: 'Black Pearl', price: 10 },
+            { label: 'Coffee Jelly', price: 15 }
+        ]
+    }
+
     const handleAddToCart = () => {
         let finalPrice = item.price
         let customName = item.title
+        let addOnsText = ''
+
+        if (selectedAddOns.length > 0) {
+            const addOnsTotal = selectedAddOns.reduce((sum, addon) => sum + addon.price, 0)
+            finalPrice += addOnsTotal
+            addOnsText = ` + ${selectedAddOns.map(a => a.label).join(', ')}`
+        }
 
         if (isWings && selectedSize) {
             const sizeOption = wingsOptions.sizes.find(s => s.label === selectedSize)
@@ -48,6 +100,21 @@ export default function FullDetailsModal({ painting: item, isOpen, onClose, addT
             customName = `${item.title} (${selectedSize})`
         } else if (isRefreshers && selectedFlavor) {
             customName = `${selectedFlavor} (${item.title})`
+        } else if (isBuldak) {
+            // Base price is 149
+            finalPrice = 149 + (selectedAddOns.reduce((sum, a) => sum + a.price, 0))
+            customName = `${selectedFlavor} (${item.title})${addOnsText}`
+        } else if (isMilktea && selectedSize && selectedFlavor) {
+            const sizeOption = milkteaOptions.sizes.find(s => s.label === selectedSize)
+            let basePrice = sizeOption?.price || 79
+            if (isCheesecakeWall) basePrice += 20 // Approx diff based on menu (79->99, 89->109)
+
+            finalPrice = basePrice + (selectedAddOns.reduce((sum, a) => sum + a.price, 0))
+            customName = `${selectedFlavor} ${item.title} (${selectedSize}, ${sugarLevel} sugar)${isCheesecakeWall ? ' + Cheesecake Wall' : ''}${addOnsText}`
+        } else if (isFruitTea && selectedSize && selectedFlavor) {
+            const sizeOption = fruitTeaOptions.sizes.find(s => s.label === selectedSize)
+            finalPrice = (sizeOption?.price || 75) + (selectedAddOns.reduce((sum, a) => sum + a.price, 0))
+            customName = `${selectedFlavor} ${item.title} (${selectedSize}, ${sugarLevel} sugar)${addOnsText}`
         }
 
         const customizedItem = {
@@ -58,6 +125,14 @@ export default function FullDetailsModal({ painting: item, isOpen, onClose, addT
         }
         addToCart(customizedItem)
         onClose()
+    }
+
+    const toggleAddOn = (addon) => {
+        if (selectedAddOns.find(a => a.label === addon.label)) {
+            setSelectedAddOns(selectedAddOns.filter(a => a.label !== addon.label))
+        } else {
+            setSelectedAddOns([...selectedAddOns, addon])
+        }
     }
 
     return (
@@ -145,6 +220,176 @@ export default function FullDetailsModal({ painting: item, isOpen, onClose, addT
                             </div>
                         )}
 
+                        {/* Buldak Customization */}
+                        {isBuldak && (
+                            <>
+                                <div className="modal-section">
+                                    <p className="modal-label">Select Variant</p>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        {buldakOptions.flavors.map(f => (
+                                            <button
+                                                key={f}
+                                                className={`category-btn ${selectedFlavor === f ? 'active' : ''}`}
+                                                onClick={() => setSelectedFlavor(f)}
+                                                style={{ fontSize: '0.9rem' }}
+                                            >
+                                                {f}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="modal-section">
+                                    <p className="modal-label">Add-ons (Optional)</p>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        {buldakOptions.addOns.map(addon => (
+                                            <button
+                                                key={addon.label}
+                                                className={`category-btn ${selectedAddOns.find(a => a.label === addon.label) ? 'active' : ''}`}
+                                                onClick={() => toggleAddOn(addon)}
+                                            >
+                                                {addon.label} (+₱{addon.price})
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Milktea Customization */}
+                        {isMilktea && (
+                            <>
+                                <div className="modal-section">
+                                    <p className="modal-label">Select Flavor</p>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        {milkteaOptions.flavors.map(f => (
+                                            <button
+                                                key={f}
+                                                className={`category-btn ${selectedFlavor === f ? 'active' : ''}`}
+                                                onClick={() => setSelectedFlavor(f)}
+                                            >
+                                                {f}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="modal-section">
+                                    <p className="modal-label">Select Size</p>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        {milkteaOptions.sizes.map(s => (
+                                            <button
+                                                key={s.label}
+                                                className={`category-btn ${selectedSize === s.label ? 'active' : ''}`}
+                                                onClick={() => setSelectedSize(s.label)}
+                                            >
+                                                {s.label} (Starting ₱{s.price})
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="modal-section">
+                                    <p className="modal-label">Sugar Level</p>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        {milkteaOptions.sugar.map(l => (
+                                            <button
+                                                key={l}
+                                                className={`category-btn ${sugarLevel === l ? 'active' : ''}`}
+                                                onClick={() => setSugarLevel(l)}
+                                            >
+                                                {l}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="modal-section">
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', padding: '0.8rem', borderRadius: '8px' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={isCheesecakeWall}
+                                            onChange={(e) => setIsCheesecakeWall(e.target.checked)}
+                                            style={{ transform: 'scale(1.5)' }}
+                                        />
+                                        <span style={{ fontSize: '1rem' }}>Add Cheesecake Wall (+₱20)</span>
+                                    </label>
+                                </div>
+                                <div className="modal-section">
+                                    <p className="modal-label">Add-ons</p>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        {milkteaOptions.addOns.map(addon => (
+                                            <button
+                                                key={addon.label}
+                                                className={`category-btn ${selectedAddOns.find(a => a.label === addon.label) ? 'active' : ''}`}
+                                                onClick={() => toggleAddOn(addon)}
+                                            >
+                                                {addon.label} (+₱{addon.price})
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Fruit Tea Customization */}
+                        {isFruitTea && (
+                            <>
+                                <div className="modal-section">
+                                    <p className="modal-label">Select Flavor</p>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        {fruitTeaOptions.flavors.map(f => (
+                                            <button
+                                                key={f}
+                                                className={`category-btn ${selectedFlavor === f ? 'active' : ''}`}
+                                                onClick={() => setSelectedFlavor(f)}
+                                            >
+                                                {f}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="modal-section">
+                                    <p className="modal-label">Select Size</p>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        {fruitTeaOptions.sizes.map(s => (
+                                            <button
+                                                key={s.label}
+                                                className={`category-btn ${selectedSize === s.label ? 'active' : ''}`}
+                                                onClick={() => setSelectedSize(s.label)}
+                                            >
+                                                {s.label} (₱{s.price})
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="modal-section">
+                                    <p className="modal-label">Sugar Level</p>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        {milkteaOptions.sugar.map(l => (
+                                            <button
+                                                key={l}
+                                                className={`category-btn ${sugarLevel === l ? 'active' : ''}`}
+                                                onClick={() => setSugarLevel(l)}
+                                            >
+                                                {l}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="modal-section">
+                                    <p className="modal-label">Add-ons</p>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        {fruitTeaOptions.addOns.map(addon => (
+                                            <button
+                                                key={addon.label}
+                                                className={`category-btn ${selectedAddOns.find(a => a.label === addon.label) ? 'active' : ''}`}
+                                                onClick={() => toggleAddOn(addon)}
+                                            >
+                                                {addon.label} (+₱{addon.price})
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
                         {/* Refreshers Promo Hint */}
                         {isRefreshers && (
                             <div className="modal-section" style={{ background: 'rgba(249, 212, 35, 0.1)', padding: '1rem', borderRadius: '8px', border: '1px dashed var(--c-gold)' }}>
@@ -166,7 +411,14 @@ export default function FullDetailsModal({ painting: item, isOpen, onClose, addT
                                 className="btn-primary"
                                 style={{ width: '100%' }}
                                 onClick={handleAddToCart}
-                                disabled={(isWings && (!selectedSize || !selectedFlavor)) || (isPlatter && !selectedSize) || (isRefreshers && !selectedFlavor)}
+                                disabled={
+                                    (isWings && (!selectedSize || !selectedFlavor)) ||
+                                    (isPlatter && !selectedSize) ||
+                                    (isRefreshers && !selectedFlavor) ||
+                                    (isBuldak && !selectedFlavor) ||
+                                    (isMilktea && (!selectedSize || !selectedFlavor)) ||
+                                    (isFruitTea && (!selectedSize || !selectedFlavor))
+                                }
                             >
                                 Add to Order
                             </button>
