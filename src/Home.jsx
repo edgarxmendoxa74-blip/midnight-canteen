@@ -72,11 +72,13 @@ function Home() {
         setCart(cart.filter(item => item.id !== id))
     }
 
+
     const handleCheckout = async (e) => {
         e.preventDefault()
         const formData = new FormData(e.target)
         const orderData = {
             full_name: formData.get('fullName'),
+            email: 'guest@midnightcanteen.com',
             phone: formData.get('phone'),
             address: orderType === 'delivery' ? formData.get('address') : 'Dine In',
             order_type: orderType,
@@ -124,9 +126,8 @@ function Home() {
             {/* Navbar */}
             <nav className="navbar">
                 <div className="container" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                    <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <img src={logo} alt="The Midnight Canteen Logo" style={{ height: '70px', width: '70px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent)' }} />
-                        <span className="logo-branding">The Midnight Canteen</span>
+                    <div className="brand" style={{ display: 'flex', alignItems: 'center' }}>
+                        <img src={logo} alt="The Midnight Canteen Logo" style={{ height: '45px', width: '45px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--accent)' }} />
                     </div>
                     <button className="cart-icon" onClick={() => { setIsCartOpen(true); setCheckoutStep('cart') }}>
                         🛒 <span className="cart-count">{cart.length}</span>
@@ -134,7 +135,22 @@ function Home() {
                 </div>
             </nav>
             <div className="sub-header" style={{ position: 'sticky', top: '90px', zIndex: 999, backgroundColor: 'var(--glass-midnight)', padding: '1rem 0', borderBottom: '1px solid var(--border-light)', backdropFilter: 'blur(10px)' }}>
-                <div className="container" style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                {/* Categories Slider */}
+                <div className="container" style={{
+                    display: 'flex',
+                    overflowX: 'auto',
+                    gap: '0.8rem',
+                    whiteSpace: 'nowrap',
+                    paddingBottom: '5px',
+                    scrollbarWidth: 'none', /* Firefox */
+                    msOverflowStyle: 'none'  /* IE 10+ */
+                }}>
+                    {/* Hide scrollbar for Chrome/Safari/Opera */}
+                    <style>{`
+                       .container::-webkit-scrollbar { 
+                           display: none; 
+                       }
+                   `}</style>
                     {['All', 'Wings Series', 'Silog Series', 'Noodles', 'Classic Milktea Series', 'Fruit Tea Series', 'Refreshers', 'Platters'].map(cat => (
                         <button
                             key={cat}
@@ -143,7 +159,7 @@ function Home() {
                                 document.getElementById('menu').scrollIntoView({ behavior: 'smooth', block: 'start' });
                             }}
                             className={`category-btn ${filter === cat ? 'active' : ''}`}
-                            style={{ fontSize: '0.9rem', padding: '0.5rem 1.5rem' }}
+                            style={{ fontSize: '0.85rem', padding: '0.5rem 1.2rem', flexShrink: 0 }}
                         >
                             {cat}
                         </button>
@@ -281,6 +297,7 @@ function Home() {
                                 <input name="phone" type="tel" required placeholder="e.g. 09123456789" />
                             </div>
 
+
                             {orderType === 'delivery' ? (
                                 <div className="form-group">
                                     <label>Delivery Address</label>
@@ -359,7 +376,7 @@ function Home() {
                                     )}
                                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
                                         {lastOrder.items.map((item, idx) => (
-                                            <p key={idx} style={{ fontSize: '0.8rem', marginBottom: '0.2rem' }}>• {item.quantity || 1}x {item.customTitle || item.title}</p>
+                                            <p key={idx} style={{ fontSize: '0.8rem', marginBottom: '0.2rem' }}>🍴 {item.quantity || 1}x {item.customTitle || item.title}</p>
                                         ))}
                                     </div>
                                     <p style={{ fontWeight: 'bold', marginTop: '0.5rem', color: 'var(--c-gold)' }}>Total: ₱{lastOrder.total_amount.toLocaleString()}</p>
@@ -368,44 +385,41 @@ function Home() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                                     <button
                                         className="btn-primary"
-                                        id="copy-btn"
-                                        style={{ width: '100%', background: 'var(--c-gold)', color: 'var(--c-midnight)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontWeight: 'bold' }}
-                                        onClick={(e) => {
-                                            const btn = e.currentTarget;
-                                            const originalText = '📋 Copy Order Details';
-                                            const summary = `🚀 *NEW ORDER - THE MIDNIGHT CANTEEN* 🚀\n\n` +
-                                                `🆔 *Order ID:* #${lastOrder.id}\n` +
-                                                `👤 *Customer:* ${lastOrder.full_name}\n` +
-                                                `📞 *Phone:* ${lastOrder.phone}\n` +
-                                                `📍 *Type:* ${lastOrder.order_type === 'delivery' ? 'Delivery' : 'Dine In'}\n` +
-                                                (lastOrder.order_type === 'delivery' ? `🏠 *Address:* ${lastOrder.address}\n` : `🪑 *Table:* ${lastOrder.table_number}\n`) +
-                                                `💰 *Payment:* ${lastOrder.payment_method.toUpperCase()}\n\n` +
-                                                `📝 *ITEMS:*\n${lastOrder.items.map(i => `• ${i.quantity || 1}x ${i.customTitle || i.title}`).join('\n')}\n\n` +
-                                                `💵 *TOTAL AMOUNT: ₱${lastOrder.total_amount.toLocaleString()}*`;
-
-                                            navigator.clipboard.writeText(summary).then(() => {
-                                                btn.innerText = '✅ Copied!';
-                                                setTimeout(() => {
-                                                    btn.innerText = originalText;
-                                                }, 2000);
-                                            });
-                                        }}
-                                    >
-                                        📋 Copy Order Details
-                                    </button>
-
-                                    <button
-                                        className="btn-primary"
                                         style={{ width: '100%', background: '#0084FF', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                                        onClick={() => {
-                                            window.open('https://m.me/100064311721918', '_blank');
+                                        onClick={async () => {
+                                            const summary = `✨ *NEW ORDER - THE MIDNIGHT CANTEEN* ✨\n\n` +
+                                                `🔢 *Order ID:* #${lastOrder.id}\n` +
+                                                `👤 *Customer:* ${lastOrder.full_name}\n` +
+                                                `📱 *Phone:* ${lastOrder.phone}\n` +
+                                                `🔖 *Type:* ${lastOrder.order_type === 'delivery' ? 'Delivery' : 'Dine In'}\n` +
+                                                (lastOrder.order_type === 'delivery' ? `🏡 *Address:* ${lastOrder.address}\n` : `🍽️ *Table:* ${lastOrder.table_number}\n`) +
+                                                `💳 *Payment:* ${lastOrder.payment_method.toUpperCase()}\n\n` +
+                                                `🛒 *ITEMS:*\n${lastOrder.items.map(i => `🍗 ${i.quantity || 1}x ${i.customTitle || i.title}`).join('\n')}\n\n` +
+                                                `💰 *TOTAL AMOUNT: ₱${lastOrder.total_amount.toLocaleString()}`;
+
+                                            try {
+                                                await navigator.clipboard.writeText(summary);
+                                                // Give a small feedback before opening
+                                                const btn = document.getElementById('messenger-btn-text');
+                                                if (btn) btn.innerText = '✅ Copied! Opening Messenger...';
+
+                                                setTimeout(() => {
+                                                    // Try passing text parameter (works on some versions/devices)
+                                                    const encodedSummary = encodeURIComponent(summary);
+                                                    window.open(`https://m.me/100064311721918?text=${encodedSummary}`, '_blank');
+                                                    if (btn) btn.innerText = '💬 Send Order via Messenger';
+                                                }, 800);
+                                            } catch (err) {
+                                                console.error('Failed to copy', err);
+                                                window.open('https://m.me/100064311721918', '_blank');
+                                            }
                                         }}
                                     >
-                                        💬 Open Messenger to Send
+                                        <span id="messenger-btn-text">💬 Send Order via Messenger</span>
                                     </button>
                                 </div>
                                 <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', textAlign: 'center', marginTop: '0.5rem' }}>
-                                    Step 1: Copy Details &nbsp;|&nbsp; Step 2: Open Messenger & Paste
+                                    Order details copied automatically! Just PASTE in Messenger.
                                 </p>
                             </div>
                         )}
@@ -422,20 +436,22 @@ function Home() {
             </div>
 
             {/* Overlay for Cart */}
-            {isCartOpen && (
-                <div
-                    onClick={() => setIsCartOpen(false)}
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        width: '100vw',
-                        height: '100vh',
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        zIndex: 1999,
-                    }}
-                ></div>
-            )}
+            {
+                isCartOpen && (
+                    <div
+                        onClick={() => setIsCartOpen(false)}
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100vw',
+                            height: '100vh',
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            zIndex: 1999,
+                        }}
+                    ></div>
+                )
+            }
 
             {/* Full Details Modal */}
             <FullDetailsModal
