@@ -748,7 +748,7 @@ button {
 
 .modal-content {
   background: var(--bg);
-  max-width: 900px;
+  max-width: 700px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
@@ -928,5 +928,63 @@ button {
 
   .modal-price {
     font-size: 1.5rem;
+  }
+}
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1rem;
+  }
+
+  .navbar {
+    height: 70px;
+  }
+
+  .logo-branding {
+    font-size: 1.1rem;
+  }
+
+  .cart-panel {
+    width: 100%;
+    right: -100%;
+    padding: 1.5rem;
+  }
+
+  .cart-panel.open {
+    right: 0;
+  }
+
+  .cart-header h3 {
+    font-size: 1.5rem;
+  }
+
+  .section-title h2 {
+    font-size: 2.2rem !important;
+  }
+
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+  }
+
+  .painting-card:hover {
+    transform: none;
+  }
+
+  /* Modal on Mobile */
+  .modal-content {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .modal-body {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .gallery-grid {
+    grid-template-columns: 1fr;
   }
 }
