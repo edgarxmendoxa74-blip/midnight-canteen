@@ -17,6 +17,7 @@ function Home() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [orderType, setOrderType] = useState('delivery')
     const [paymentMethod, setPaymentMethod] = useState('cod')
+    const [lastOrder, setLastOrder] = useState(null)
 
     useEffect(() => {
         fetchMenuItems()
@@ -44,6 +45,7 @@ function Home() {
         if (!cart.find(cartItem => cartItem.id === item.id)) {
             setCart([...cart, item])
             setIsCartOpen(true)
+            setCheckoutStep('cart') // Ensure we start at cart when adding
         }
     }
 
@@ -56,11 +58,10 @@ function Home() {
         const formData = new FormData(e.target)
         const orderData = {
             full_name: formData.get('fullName'),
-            email: formData.get('email'),
             phone: formData.get('phone'),
             address: orderType === 'delivery' ? formData.get('address') : 'Dine In',
             order_type: orderType,
-            table_number: formData.get('tableNumber'),
+            table_number: orderType === 'dine-in' ? formData.get('tableNumber') : null,
             payment_method: paymentMethod,
             total_amount: cartTotal,
             items: cart,
@@ -69,12 +70,15 @@ function Home() {
 
         try {
             setIsSubmitting(true)
-            const { error } = await supabase
+            const { data, error } = await supabase
                 .from('orders')
                 .insert([orderData])
+                .select()
+                .single()
 
             if (error) throw error
 
+            setLastOrder(data)
             setCheckoutStep('success')
             setCart([])
         } catch (err) {
@@ -192,7 +196,7 @@ function Home() {
             {/* Cart Panel Shell */}
             <div className={`cart-panel ${isCartOpen ? 'open' : ''}`}>
                 <div className="cart-header">
-                    <h3>{checkoutStep === 'cart' ? 'Your Order' : checkoutStep === 'shipping' ? 'Delivery Details' : 'Order Complete'}</h3>
+                    <h3>{checkoutStep === 'cart' ? 'Your Order' : checkoutStep === 'success' ? 'Order Complete' : 'Order Details'}</h3>
                     <button onClick={() => setIsCartOpen(false)} style={{ fontSize: '1.5rem' }}>&times;</button>
                 </div>
 
@@ -231,24 +235,15 @@ function Home() {
                         <form className="checkout-form" onSubmit={handleCheckout}>
                             <div className="form-group">
                                 <label>Order Type</label>
-                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                                    <button
-                                        type="button"
-                                        className={`category-btn ${orderType === 'delivery' ? 'active' : ''}`}
-                                        onClick={() => setOrderType('delivery')}
-                                        style={{ flex: 1 }}
-                                    >
-                                        🚀 Delivery
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`category-btn ${orderType === 'dine-in' ? 'active' : ''}`}
-                                        onClick={() => setOrderType('dine-in')}
-                                        style={{ flex: 1 }}
-                                    >
-                                        🍽️ Dine In
-                                    </button>
-                                </div>
+                                <select
+                                    name="orderType"
+                                    value={orderType}
+                                    onChange={(e) => setOrderType(e.target.value)}
+                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--c-gold)', background: 'var(--glass-midnight)', color: 'white' }}
+                                >
+                                    <option value="delivery">🚀 Delivery</option>
+                                    <option value="dine-in">🍽️ Dine In</option>
+                                </select>
                             </div>
 
                             <div className="form-group">
@@ -257,17 +252,13 @@ function Home() {
                             </div>
                             <div className="form-group">
                                 <label>Phone Number</label>
-                                <input name="phone" type="tel" required placeholder="09XX XXX XXXX" />
-                            </div>
-                            <div className="form-group">
-                                <label>Email Address</label>
-                                <input name="email" type="email" required placeholder="your@email.com" />
+                                <input name="phone" type="tel" required placeholder="e.g. 09123456789" />
                             </div>
 
                             {orderType === 'delivery' ? (
                                 <div className="form-group">
                                     <label>Delivery Address</label>
-                                    <input name="address" type="text" required placeholder="Street, Barangay, City" />
+                                    <textarea name="address" required placeholder="House No., Street, Brgy., City" rows="3"></textarea>
                                 </div>
                             ) : (
                                 <div className="form-group">
@@ -300,29 +291,87 @@ function Home() {
 
                             {paymentMethod === 'gcash' && (
                                 <div style={{ textAlign: 'center', marginTop: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--c-gold)', marginBottom: '1rem' }}>Scan QR and Send Screenshots to our Messenger</p>
+                                    <p style={{ fontSize: '0.8rem', color: 'var(--c-gold)', marginBottom: '1rem' }}>Scan QR and Send Screenshot to our Messenger</p>
                                     <img src="/gcash_qr.jpg" alt="GCash QR Code" style={{ width: '100%', maxWidth: '200px', borderRadius: '10px' }} />
                                 </div>
                             )}
 
-                            <div className="cart-total" style={{ marginTop: '2rem', borderTop: '1px solid var(--border-light)', paddingTop: '1rem' }}>
+                            <div className="cart-total" style={{ marginTop: '20px', borderTop: '1px solid var(--border-light)', paddingTop: '15px' }}>
                                 <span>Total Amount</span>
                                 <span>₱{cartTotal.toLocaleString()}</span>
                             </div>
+
                             <button type="submit" disabled={isSubmitting} className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
                                 {isSubmitting ? 'Processing...' : 'Place Order'}
                             </button>
-                            <button type="button" onClick={() => setCheckoutStep('cart')} style={{ marginTop: '1rem', color: 'var(--text-light)' }}>Back to Cart</button>
+                            <button type="button" onClick={() => setCheckoutStep('cart')} style={{ width: '100%', marginTop: '0.5rem', background: 'transparent', border: 'none', color: 'var(--text-light)', cursor: 'pointer', textDecoration: 'underline' }}>
+                                Back to Cart
+                            </button>
                         </form>
                     </div>
                 )}
 
                 {checkoutStep === 'success' && (
-                    <div style={{ textAlign: 'center', marginTop: '5rem' }}>
-                        <div style={{ fontSize: '3rem', color: 'var(--accent)', marginBottom: '1rem' }}>🍔</div>
-                        <h2>Order Confirmed</h2>
-                        <p style={{ color: 'var(--text-light)', marginTop: '1rem' }}>Your order is being prepared. We'll notify you when it's out for delivery.</p>
-                        <button className="btn-primary" style={{ marginTop: '2rem', width: '100%' }} onClick={() => setIsCartOpen(false)}>Order More</button>
+                    <div className="cart-items" style={{ textAlign: 'center', paddingTop: '1rem' }}>
+                        <div style={{ fontSize: '3rem', color: 'var(--c-gold)', marginBottom: '1rem' }}>🎉</div>
+                        <h2>Order Confirmed!</h2>
+                        <p style={{ color: 'var(--text-light)', marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                            Your order has been recorded. To finish, please send your order summary to our Messenger.
+                        </p>
+
+                        {lastOrder && (
+                            <div style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', textAlign: 'left', border: '1px solid var(--c-gold)' }}>
+                                <h4 style={{ color: 'var(--c-gold)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>ORDER SUMMARY</h4>
+                                <div style={{ maxHeight: '150px', overflowY: 'auto', marginBottom: '1rem' }}>
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}><strong>Customer:</strong> {lastOrder.full_name}</p>
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}><strong>Phone:</strong> {lastOrder.phone}</p>
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}><strong>Type:</strong> {lastOrder.order_type === 'delivery' ? 'Delivery' : 'Dine In'}</p>
+                                    {lastOrder.order_type === 'delivery' ? (
+                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}><strong>Address:</strong> {lastOrder.address}</p>
+                                    ) : (
+                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}><strong>Table:</strong> {lastOrder.table_number}</p>
+                                    )}
+                                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
+                                        {lastOrder.items.map((item, idx) => (
+                                            <p key={idx} style={{ fontSize: '0.8rem', marginBottom: '0.2rem' }}>• {item.customTitle || item.title}</p>
+                                        ))}
+                                    </div>
+                                    <p style={{ fontWeight: 'bold', marginTop: '0.5rem', color: 'var(--c-gold)' }}>Total: ₱{lastOrder.total_amount.toLocaleString()}</p>
+                                </div>
+
+                                <button
+                                    className="btn-primary"
+                                    style={{ width: '100%', background: '#0084FF', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                                    onClick={() => {
+                                        const summary = `🚀 *NEW ORDER - THE MIDNIGHT CANTEEN* 🚀\n\n` +
+                                            `🆔 *Order ID:* #${lastOrder.id}\n` +
+                                            `👤 *Customer:* ${lastOrder.full_name}\n` +
+                                            `📞 *Phone:* ${lastOrder.phone}\n` +
+                                            `📍 *Type:* ${lastOrder.order_type === 'delivery' ? 'Delivery' : 'Dine In'}\n` +
+                                            (lastOrder.order_type === 'delivery' ? `🏠 *Address:* ${lastOrder.address}\n` : `🪑 *Table:* ${lastOrder.table_number}\n`) +
+                                            `💰 *Payment:* ${lastOrder.payment_method.toUpperCase()}\n\n` +
+                                            `📝 *ITEMS:*\n${lastOrder.items.map(i => `• ${i.customTitle || i.title}`).join('\n')}\n\n` +
+                                            `💵 *TOTAL AMOUNT: ₱${lastOrder.total_amount.toLocaleString()}*`;
+
+                                        navigator.clipboard.writeText(summary);
+                                        window.open('https://m.me/100064311721918', '_blank');
+                                    }}
+                                >
+                                    💬 Send to Messenger
+                                </button>
+                                <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', textAlign: 'center', marginTop: '0.5rem' }}>
+                                    Copy summary & open chat
+                                </p>
+                            </div>
+                        )}
+
+                        <button
+                            className="btn-secondary"
+                            style={{ marginTop: '1.5rem', width: '100%' }}
+                            onClick={() => { setIsCartOpen(false); setLastOrder(null); setCheckoutStep('cart'); }}
+                        >
+                            Close
+                        </button>
                     </div>
                 )}
             </div>
@@ -350,7 +399,7 @@ function Home() {
                 onClose={() => setIsModalOpen(false)}
                 addToCart={addToCart}
             />
-        </div>
+        </div >
     )
 }
 
