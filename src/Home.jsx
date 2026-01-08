@@ -422,11 +422,11 @@ function Home() {
                                     </button>
 
                                     <a
-                                        href="https://m.me/100064311721918"
+                                        href="https://www.facebook.com/messages/t/100064311721918"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="btn-primary"
-                                        style={{ width: '100%', background: '#0084FF', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none' }}
+                                        style={{ width: '100%', background: '#0084FF', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none', cursor: 'pointer' }}
                                     >
                                         💬 Open Messenger to Send
                                     </a>
