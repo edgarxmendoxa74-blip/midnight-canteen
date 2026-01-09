@@ -135,7 +135,7 @@ function Home() {
 
             if (error) throw error
 
-            setLastOrder({ ...data, summary }) // Store summary too
+            setLastOrder({ ...data, summary: summary + `\n🆔 *Ref:* #${data.id}\n⏰ *Time:* ${new Date().toLocaleTimeString()}` }) // Store summary with unique ID
             setCheckoutStep('success')
             setCart([])
 
