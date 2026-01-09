@@ -5,4 +5,5 @@ UPDATE menu_items SET description = REPLACE(description, 'Garlic Rice', 'Plain R
 DELETE FROM menu_items WHERE description LIKE '%Patties%' OR description LIKE '%Pattie%';
 
 -- Fix 3: Fix Chicken Silog image (identify by description containing 'Chicken Silog')
-UPDATE menu_items SET image = '/silog.jpg' WHERE description LIKE '%Chicken Silog%';
+UPDATE menu_items SET image = '/chicken_silog.jpg' WHERE description LIKE '%Chicken Silog%';
+UPDATE menu_items SET image = '/pork_silog.jpg' WHERE description LIKE '%Pork Silog%';
