@@ -16,7 +16,7 @@ CREATE TABLE orders (
   full_name TEXT NOT NULL,
   email TEXT NOT NULL,
   phone TEXT NOT NULL,
-  address TEXT NOT NULL,
+  address TEXT,
   items JSONB NOT NULL,
   total_amount DECIMAL(10, 2) NOT NULL,
   order_type TEXT NOT NULL,
