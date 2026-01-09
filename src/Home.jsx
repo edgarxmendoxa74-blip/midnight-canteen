@@ -116,14 +116,14 @@ function Home() {
             status: 'pending'
         }
 
-        const summary = `✨ *NEW ORDER - THE MIDNIGHT CANTEEN* ✨\n\n` +
+        const summary = `Hello Midnight Canteen! I'd like to place an order from your website:\n\n` +
             `👤 *Customer:* ${orderData.full_name}\n` +
             `📱 *Phone:* ${orderData.phone}\n` +
             `🔖 *Type:* ${orderData.order_type.toUpperCase()}\n` +
-            ((orderData.order_type === 'delivery' || orderData.order_type === 'pickup') ? `🏡 *Note/Address:* ${orderData.address}\n` : `🍽️ *Table:* ${orderData.table_number}\n`) +
+            ((orderData.order_type === 'delivery' || orderData.order_type === 'pickup') ? `🏠 *Address:* ${orderData.address}\n` : `🍽️ *Table:* ${orderData.table_number}\n`) +
             `💳 *Payment:* ${orderData.payment_method.toUpperCase()}\n\n` +
-            `🛒 *ITEMS:*\n${orderData.items.map(i => `🍗 ${i.quantity || 1}x ${i.customTitle || i.title}`).join('\n')}\n\n` +
-            `💰 *TOTAL AMOUNT: ₱${orderData.total_amount.toLocaleString()}`;
+            `🛒 *ITEMS:*\n${orderData.items.map(i => `• ${i.quantity || 1}x ${i.customTitle || i.title}`).join('\n')}\n\n` +
+            `💰 *TOTAL AMOUNT: ₱${orderData.total_amount.toLocaleString()}*`; // Fixed missing closing asterisk
 
         try {
             setIsSubmitting(true)
@@ -139,11 +139,13 @@ function Home() {
             setCheckoutStep('success')
             setCart([])
 
-            // Try to auto-copy if possible (though browser might block it here)
+            // Try to auto-copy
             try {
-                navigator.clipboard.writeText(summary);
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(summary);
+                }
             } catch (err) {
-                console.log('Auto-copy failed, user can copy via button');
+                console.log('Auto-copy failed');
             }
         } catch (err) {
             alert('Error processing order: ' + err.message)
@@ -432,32 +434,56 @@ function Home() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                     <button
                                         className="btn-primary"
-                                        style={{ width: '100%', background: '#0084FF', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontWeight: 'bold', borderRadius: '8px', padding: '1.2rem', border: 'none', cursor: 'pointer', transition: 'transform 0.2s' }}
+                                        id="messenger-btn"
+                                        style={{ width: '100%', background: '#0084FF', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontWeight: 'bold', borderRadius: '8px', padding: '1.2rem', border: 'none', cursor: 'pointer', transition: 'transform 0.2s', boxShadow: '0 4px 15px rgba(0, 132, 255, 0.3)' }}
                                         onClick={(e) => {
                                             const btn = e.currentTarget;
                                             const originalContent = btn.innerHTML;
                                             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-                                            // Handle copy
-                                            navigator.clipboard.writeText(lastOrder.summary).then(() => {
-                                                btn.innerHTML = '✅ Copied! Redirecting...';
-                                            }).catch(err => {
-                                                console.error('Failed to copy', err);
+                                            // Improved copy function for iOS/In-App Browsers
+                                            const copyToClipboard = async (text) => {
+                                                try {
+                                                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                                                        await navigator.clipboard.writeText(text);
+                                                        return true;
+                                                    }
+                                                    // Fallback for older browsers
+                                                    const textArea = document.createElement("textarea");
+                                                    textArea.value = text;
+                                                    document.body.appendChild(textArea);
+                                                    textArea.select();
+                                                    document.execCommand('copy');
+                                                    document.body.removeChild(textArea);
+                                                    return true;
+                                                } catch (err) {
+                                                    console.error('Copy failed', err);
+                                                    return false;
+                                                }
+                                            };
+
+                                            copyToClipboard(lastOrder.summary).then((success) => {
+                                                if (success) {
+                                                    btn.innerHTML = '✅ Copied! Redirecting...';
+                                                    btn.style.background = '#28a745';
+                                                } else {
+                                                    btn.innerHTML = '❌ Click Copy Below manually';
+                                                }
                                             });
 
                                             // Redirect logic
-                                            const delay = isMobile ? 100 : 500; // Much shorter delay for mobile to avoid Safari blocker
+                                            const delay = isMobile ? 1200 : 1500;
 
                                             setTimeout(() => {
                                                 handleMessengerRedirect();
-                                                // Restore button text after some time
                                                 setTimeout(() => {
                                                     btn.innerHTML = originalContent;
-                                                }, 2000);
+                                                    btn.style.background = '#0084FF';
+                                                }, 3000);
                                             }, delay);
                                         }}
                                     >
-                                        💬 Send Order via Messenger
+                                        💬 Copy & Open Messenger
                                     </button>
                                 </div>
 
