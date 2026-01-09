@@ -19,6 +19,9 @@ CREATE TABLE orders (
   address TEXT NOT NULL,
   items JSONB NOT NULL,
   total_amount DECIMAL(10, 2) NOT NULL,
+  order_type TEXT NOT NULL,
+  payment_method TEXT NOT NULL,
+  table_number TEXT,
   status TEXT DEFAULT 'pending', -- pending, preparing, out-for-delivery, delivered, cancelled
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
