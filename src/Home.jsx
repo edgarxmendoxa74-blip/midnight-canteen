@@ -109,6 +109,15 @@ function Home() {
             status: 'pending'
         }
 
+        const summary = `✨ *NEW ORDER - THE MIDNIGHT CANTEEN* ✨\n\n` +
+            `👤 *Customer:* ${orderData.full_name}\n` +
+            `📱 *Phone:* ${orderData.phone}\n` +
+            `🔖 *Type:* ${orderData.order_type.toUpperCase()}\n` +
+            ((orderData.order_type === 'delivery' || orderData.order_type === 'pickup') ? `🏡 *Note/Address:* ${orderData.address}\n` : `🍽️ *Table:* ${orderData.table_number}\n`) +
+            `💳 *Payment:* ${orderData.payment_method.toUpperCase()}\n\n` +
+            `🛒 *ITEMS:*\n${orderData.items.map(i => `🍗 ${i.quantity || 1}x ${i.customTitle || i.title}`).join('\n')}\n\n` +
+            `💰 *TOTAL AMOUNT: ₱${orderData.total_amount.toLocaleString()}`;
+
         try {
             setIsSubmitting(true)
             const { data, error } = await supabase
@@ -119,9 +128,16 @@ function Home() {
 
             if (error) throw error
 
-            setLastOrder(data)
+            setLastOrder({ ...data, summary }) // Store summary too
             setCheckoutStep('success')
             setCart([])
+
+            // Try to auto-copy if possible (though browser might block it here)
+            try {
+                navigator.clipboard.writeText(summary);
+            } catch (err) {
+                console.log('Auto-copy failed, user can copy via button');
+            }
         } catch (err) {
             alert('Error processing order: ' + err.message)
         } finally {
@@ -251,7 +267,7 @@ function Home() {
             {/* Cart Panel Shell */}
             <div className={`cart-panel ${isCartOpen ? 'open' : ''}`}>
                 <div className="cart-header">
-                    <h3>{checkoutStep === 'cart' ? 'Your Order' : checkoutStep === 'success' ? 'Order Complete' : 'Order Details'}</h3>
+                    <h3>{checkoutStep === 'cart' ? 'Your Order' : checkoutStep === 'success' ? 'Final Step' : 'Order Details'}</h3>
                     <button onClick={() => setIsCartOpen(false)} style={{ fontSize: '1.5rem' }}>&times;</button>
                 </div>
 
@@ -368,16 +384,8 @@ function Home() {
 
                             {paymentMethod === 'gcash' && (
                                 <div style={{ textAlign: 'center', marginTop: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--c-gold)', marginBottom: '1rem' }}>Scan QR and Send Screenshot to our Messenger</p>
+                                    <p style={{ fontSize: '0.8rem', color: 'var(--c-gold)', marginBottom: '1rem' }}>Scan QR and Send Screenshot to Messenger</p>
                                     <img src="/gcash_qr.jpg" alt="GCash QR Code" style={{ width: '100%', maxWidth: '200px', borderRadius: '10px' }} />
-                                    <button
-                                        type="button"
-                                        onClick={handleMessengerRedirect}
-                                        className="btn-primary"
-                                        style={{ width: '100%', marginTop: '1rem', background: '#0084FF', color: 'white', fontSize: '0.8rem' }}
-                                    >
-                                        💬 Open Messenger for GCash
-                                    </button>
                                 </div>
                             )}
 
@@ -386,9 +394,12 @@ function Home() {
                                 <span>₱{cartTotal.toLocaleString()}</span>
                             </div>
 
-                            <button type="submit" disabled={isSubmitting} className="btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
-                                {isSubmitting ? 'Processing...' : 'Place Order'}
+                            <button type="submit" disabled={isSubmitting} className="btn-primary" style={{ width: '100%', marginTop: '1rem', background: '#0084FF' }}>
+                                {isSubmitting ? 'Processing...' : '🚀 Submit & Message Us'}
                             </button>
+                            <p style={{ fontSize: '0.7rem', textAlign: 'center', marginTop: '0.5rem', color: 'var(--text-light)' }}>
+                                Clicking "Submit" will save your order and prepare it for Messenger.
+                            </p>
                             <button type="button" onClick={() => setCheckoutStep('cart')} style={{ width: '100%', marginTop: '0.5rem', background: 'transparent', border: 'none', color: 'var(--text-light)', cursor: 'pointer', textDecoration: 'underline' }}>
                                 Back to Cart
                             </button>
@@ -398,83 +409,65 @@ function Home() {
 
                 {checkoutStep === 'success' && (
                     <div className="cart-items" style={{ textAlign: 'center', paddingTop: '1rem' }}>
-                        <div style={{ fontSize: '3rem', color: 'var(--c-gold)', marginBottom: '1rem' }}>🎉</div>
-                        <h2>Order Confirmed!</h2>
-                        <p style={{ color: 'var(--text-light)', marginTop: '0.5rem', fontSize: '0.9rem' }}>
-                            Your order has been recorded. To finish, please send your order summary to our Messenger.
+                        <div style={{ fontSize: '3rem', color: 'var(--c-gold)', marginBottom: '1rem' }}>💬</div>
+                        <h2 style={{ fontSize: '1.8rem' }}>Direct Order via Messenger</h2>
+                        <p style={{ color: 'var(--text-light)', marginTop: '0.5rem', fontSize: '0.95rem', fontWeight: '500' }}>
+                            All order details are sent directly to our Messenger to process your order immediately.
                         </p>
 
                         {lastOrder && (
-                            <div style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', textAlign: 'left', border: '1px solid var(--c-gold)' }}>
-                                <h4 style={{ color: 'var(--c-gold)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>ORDER SUMMARY</h4>
-                                <div style={{ maxHeight: '150px', overflowY: 'auto', marginBottom: '1rem' }}>
-                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}><strong>Customer:</strong> {lastOrder.full_name}</p>
-                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}><strong>Phone:</strong> {lastOrder.phone}</p>
-                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}><strong>Type:</strong> {lastOrder.order_type === 'delivery' ? 'Delivery' : lastOrder.order_type === 'pickup' ? 'Pickup' : 'Dine In'}</p>
-                                    {(lastOrder.order_type === 'delivery' || lastOrder.order_type === 'pickup') ? (
-                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}><strong>{lastOrder.order_type === 'delivery' ? 'Address' : 'Note'}:</strong> {lastOrder.address}</p>
-                                    ) : (
-                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}><strong>Table:</strong> {lastOrder.table_number}</p>
-                                    )}
-                                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
-                                        {lastOrder.items.map((item, idx) => (
-                                            <p key={idx} style={{ fontSize: '0.8rem', marginBottom: '0.2rem' }}>🍴 {item.quantity || 1}x {item.customTitle || item.title}</p>
-                                        ))}
-                                    </div>
-                                    <p style={{ fontWeight: 'bold', marginTop: '0.5rem', color: 'var(--c-gold)' }}>Total: ₱{lastOrder.total_amount.toLocaleString()}</p>
+                            <div style={{ marginTop: '1.5rem', padding: '1.2rem', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', textAlign: 'left', border: '2px solid #0084FF' }}>
+                                <div style={{ textAlign: 'center', marginBottom: '1.2rem' }}>
+                                    <h4 style={{ color: 'var(--c-gold)', marginBottom: '0.5rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Action Required</h4>
+                                    <p style={{ fontSize: '0.85rem', color: '#fff' }}>Please <b>Copy Details</b> and then <b>Open Messenger</b> to paste them to us.</p>
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                     <button
                                         className="btn-primary"
-                                        style={{ width: '100%', background: 'var(--c-gold)', color: 'var(--c-midnight)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontWeight: 'bold' }}
+                                        style={{ width: '100%', background: 'var(--c-gold)', color: 'var(--c-midnight)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontWeight: 'bold', borderRadius: '8px', padding: '1rem' }}
                                         onClick={(e) => {
                                             const btn = e.currentTarget;
-                                            const originalText = '📋 Copy Order Details';
-                                            const summary = `✨ *NEW ORDER - THE MIDNIGHT CANTEEN* ✨\n\n` +
-                                                `🔢 *Order ID:* #${lastOrder.id}\n` +
-                                                `👤 *Customer:* ${lastOrder.full_name}\n` +
-                                                `📱 *Phone:* ${lastOrder.phone}\n` +
-                                                `🔖 *Type:* ${lastOrder.order_type.toUpperCase()}\n` +
-                                                ((lastOrder.order_type === 'delivery' || lastOrder.order_type === 'pickup') ? `🏡 *Note/Address:* ${lastOrder.address}\n` : `🍽️ *Table:* ${lastOrder.table_number}\n`) +
-                                                `💳 *Payment:* ${lastOrder.payment_method.toUpperCase()}\n\n` +
-                                                `🛒 *ITEMS:*\n${lastOrder.items.map(i => `🍗 ${i.quantity || 1}x ${i.customTitle || i.title}`).join('\n')}\n\n` +
-                                                `💰 *TOTAL AMOUNT: ₱${lastOrder.total_amount.toLocaleString()}`;
+                                            const originalText = '📋 1. Copy Order Details';
 
-                                            navigator.clipboard.writeText(summary).then(() => {
-                                                btn.innerText = '✅ Copied!';
+                                            navigator.clipboard.writeText(lastOrder.summary).then(() => {
+                                                btn.innerHTML = '✅ Order Copied!';
                                                 setTimeout(() => {
-                                                    btn.innerText = originalText;
+                                                    btn.innerHTML = originalText;
                                                 }, 2000);
                                             }).catch(err => {
                                                 console.error('Failed to copy', err);
-                                                alert('Failed to copy automatically. Please take a screenshot!');
+                                                alert('Failed to copy. Please manually highlight and copy the summary.');
                                             });
                                         }}
                                     >
-                                        📋 Copy Order Details
+                                        📋 1. Copy Order Details
                                     </button>
 
                                     <button
                                         onClick={handleMessengerRedirect}
                                         className="btn-primary"
-                                        style={{ width: '100%', background: '#0084FF', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none', cursor: 'pointer', border: 'none' }}
+                                        style={{ width: '100%', background: '#0084FF', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none', cursor: 'pointer', border: 'none', borderRadius: '8px', padding: '1rem' }}
                                     >
-                                        💬 Open Messenger to Send
+                                        💬 2. Open Messenger to Paste
                                     </button>
                                 </div>
-                                <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', textAlign: 'center', marginTop: '0.5rem' }}>
-                                    Step 1: Copy Details &nbsp;|&nbsp; Step 2: Open Messenger & Paste
-                                </p>
+
+                                <div style={{ marginTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem' }}>
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginBottom: '0.5rem' }}><b>Preview of Details:</b></p>
+                                    <pre style={{ fontSize: '0.7rem', background: 'rgba(0,0,0,0.3)', padding: '0.8rem', borderRadius: '4px', whiteSpace: 'pre-wrap', maxHeight: '150px', overflowY: 'auto' }}>
+                                        {lastOrder.summary}
+                                    </pre>
+                                </div>
                             </div>
                         )}
 
                         <button
                             className="btn-secondary"
-                            style={{ marginTop: '1.5rem', width: '100%' }}
+                            style={{ marginTop: '1.5rem', width: '100%', border: 'none' }}
                             onClick={() => { setIsCartOpen(false); setLastOrder(null); setCheckoutStep('cart'); }}
                         >
-                            Close
+                            Return to Menu
                         </button>
                     </div>
                 )}
